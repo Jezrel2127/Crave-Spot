@@ -20,9 +20,9 @@
     </a>
 
     <nav class="main-nav" aria-label="Main navigation">
-      <a href="#home">Home</a>
-      <a href="#menu">Menu</a>
-      <a href="#about">About</a>
+      <a href="#home" data-page="home">Home</a>
+      <a href="#menu" data-page="menu">Menu</a>
+      <a href="#about" data-page="about">About</a>
     </nav>
 
     <!-- LOGIN AND SIGNUP BUTTONS -->
@@ -43,8 +43,49 @@
     </button>
   </header>
 
+  <section class="signin-page" id="signin-page" hidden>
+    <div class="signin-story">
+      <a class="brand signin-brand" href="#signin" aria-label="Crave Spot sign in">
+        <span class="brand-icon">C</span>
+        <span>Crave<span class="brand-accent">Spot</span></span>
+      </a>
+      <div class="signin-story-copy">
+        <span class="eyebrow">GOOD FOOD, GOOD MOOD</span>
+        <h1>Your happy place for every craving.</h1>
+        <p>Find comfort food, fresh favorites, and little treats worth coming back for.</p>
+        <div class="signin-perks"><span>✦ Fresh picks</span><span>♡ Made for you</span><span>→ Easy ordering</span></div>
+      </div>
+      <p class="signin-copyright">© <span id="signin-year"></span> Crave Spot. Good food. Great moments.</p>
+    </div>
+    <div class="signin-panel">
+      <div class="signin-card-wrap">
+        <span class="eyebrow">WELCOME BACK</span>
+        <h2>Sign in to Crave Spot</h2>
+        <p class="signin-subtitle">Enter your account details to continue.</p>
+        <form class="signin-form" id="signin-form">
+          <label for="signin-email">Email address</label>
+          <input id="signin-email" type="email" autocomplete="email" placeholder="you@example.com" required>
+          <label for="signin-password">Password</label>
+          <div class="password-field">
+            <input id="signin-password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
+            <button class="password-visibility" type="button" data-toggle-password="signin-password" aria-label="Show password" aria-pressed="false">
+              <svg class="eye-icon" viewBox="0 0 24 24" aria-hidden="true"><path class="eye-outline" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-pupil" cx="12" cy="12" r="3"/><path class="eye-slash" d="m3 3 18 18"/></svg>
+            </button>
+          </div>
+          <p class="signin-message" id="signin-message" role="status" aria-live="polite"></p>
+          <button class="signup-button signin-submit" type="submit">Sign In <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="signin-create">New to Crave Spot? <button id="signin-create-account" type="button">Create an account</button></p>
+      </div>
+      <div class="signin-photo" role="img" aria-label="A delicious meal ready to enjoy">
+        <div class="signin-photo-caption"><span>✦</span><div><strong>Make room for something delicious.</strong><small>Your next favorite is waiting.</small></div></div>
+      </div>
+    </div>
+  </section>
+
   <main>
     <!-- HERO SECTION -->
+    <section class="home-page" id="home-page" data-view="home">
     <section class="hero" id="home">
       <div class="hero-content">
         <span class="eyebrow">GOOD FOOD, GOOD MOOD</span>
@@ -59,7 +100,7 @@
           freshly brewed coffee, and refreshing drinks.
         </p>
 
-        <a class="primary-button" href="#menu">
+        <a class="primary-button" href="#menu" data-go-page="menu">
           Explore Our Menu <span>→</span>
         </a>
 
@@ -82,8 +123,24 @@
       </div>
     </section>
 
+    <section class="home-highlights" aria-label="Crave Spot highlights">
+      <div class="highlight-heading">
+        <div>
+          <span class="eyebrow">A LITTLE INSPIRATION</span>
+          <h2>Good things to crave today.</h2>
+        </div>
+        <button class="text-button" type="button" data-go-page="menu">Browse full menu →</button>
+      </div>
+      <div class="highlight-grid">
+        <article class="highlight-card"><span>🍔</span><h3>Comfort food</h3><p>Find a new favorite for lunch or dinner.</p></article>
+        <article class="highlight-card"><span>☕</span><h3>Coffee break</h3><p>Pair your day with a freshly brewed pick.</p></article>
+        <article class="highlight-card"><span>🥤</span><h3>Something refreshing</h3><p>Explore cool drinks for every craving.</p></article>
+      </div>
+    </section>
+    </section>
+
     <!-- MENU SECTION -->
-    <section class="menu-section" id="menu">
+    <section class="menu-section page-view" id="menu" data-view="menu" hidden>
       <div class="section-heading">
         <div>
           <span class="eyebrow">EXPLORE THE MENU</span>
@@ -150,7 +207,7 @@
     </section>
 
     <!-- SHOPPING CART -->
-    <section class="cart-section" id="cart-section">
+    <section class="cart-section page-view" id="cart-section" data-view="cart" hidden>
       <div class="section-heading">
         <div>
           <span class="eyebrow">YOUR SELECTION</span>
@@ -179,6 +236,14 @@
         <aside class="order-summary">
           <h3>Order Summary</h3>
 
+          <div class="cart-delivery" id="cart-delivery">
+            <div class="cart-delivery-heading"><span aria-hidden="true">⌖</span><strong>Delivering to</strong></div>
+            <p id="cart-delivery-recipient">Sign in to add delivery details.</p>
+            <p id="cart-delivery-address"></p>
+            <p id="cart-delivery-phone"></p>
+            <button class="text-button" id="edit-delivery-details" type="button">Edit delivery details</button>
+          </div>
+
           <div class="summary-line">
             <span>Items</span>
             <span id="cart-item-count">0</span>
@@ -204,7 +269,7 @@
             id="checkout-button"
             type="button"
           >
-            Place Demo Order
+            Continue to Checkout
           </button>
 
           <p class="checkout-note">
@@ -217,7 +282,7 @@
     </section>
 
     <!-- ABOUT SECTION -->
-    <section class="about-section" id="about">
+    <section class="about-section page-view" id="about" data-view="about" hidden>
       <div class="about-icon">
         C<span>✦</span>
       </div>
@@ -232,6 +297,94 @@
           coffee, and refreshing drinks—all in one place.
         </p>
       </div>
+    </section>
+
+    <!-- CHECKOUT -->
+    <section class="checkout-page page-view" id="checkout-page" data-view="checkout" hidden>
+      <div class="profile-heading">
+        <span class="eyebrow">ALMOST THERE</span>
+        <h1>Delivery details</h1>
+        <p>Confirm where to send your Crave Spot order.</p>
+      </div>
+      <div class="checkout-layout">
+        <form class="profile-card checkout-form" id="checkout-form">
+          <h2>Where should we deliver?</h2>
+          <p class="checkout-form-intro">Your saved details are filled in. You can update them for this order.</p>
+          <label for="checkout-name">Recipient name</label>
+          <input id="checkout-name" name="name" type="text" autocomplete="name" required maxlength="80">
+          <label for="checkout-phone">Contact number</label>
+          <input id="checkout-phone" name="phone" type="tel" autocomplete="tel" placeholder="09XX XXX XXXX" required maxlength="24">
+          <label for="checkout-address">Delivery address</label>
+          <textarea id="checkout-address" name="address" autocomplete="street-address" placeholder="House/unit, street, barangay, city, province" rows="4" required maxlength="240"></textarea>
+          <p class="profile-message" id="checkout-message" role="status" aria-live="polite"></p>
+          <div class="checkout-form-actions">
+            <button class="text-button" id="back-to-cart" type="button">← Back to cart</button>
+            <button class="primary-button checkout-place-order" type="submit">Place Demo Order</button>
+          </div>
+          <p class="checkout-note">Prototype only. No payment will be collected.</p>
+        </form>
+        <aside class="profile-card checkout-order-card">
+          <h2>Your order</h2>
+          <div id="checkout-order-items"></div>
+          <div class="summary-total"><span>Total</span><strong id="checkout-total">₱0.00</strong></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- PROFILE PAGE -->
+    <section class="profile-page" id="profile-page" hidden>
+      <div class="profile-heading">
+        <span class="eyebrow">YOUR ACCOUNT</span>
+        <h1>My Profile</h1>
+        <p>Manage your Crave Spot account details.</p>
+      </div>
+
+      <div class="profile-layout">
+        <section class="profile-card" aria-labelledby="profile-information-title">
+          <div class="profile-card-heading">
+            <h2 id="profile-information-title">Account Information</h2>
+            <p>Your current Crave Spot account details.</p>
+          </div>
+
+          <form class="profile-form" id="profile-form">
+            <label for="profile-name">Full Name</label>
+            <input id="profile-name" name="name" type="text" autocomplete="name" required maxlength="80">
+
+            <label for="profile-email">Email Address</label>
+            <input id="profile-email" name="email" type="email" autocomplete="email" required maxlength="254">
+
+            <div class="profile-address-divider">Delivery details</div>
+            <label for="profile-phone">Contact Number</label>
+            <input id="profile-phone" name="phone" type="tel" autocomplete="tel" placeholder="09XX XXX XXXX" required maxlength="24">
+
+            <label for="profile-address">Default Delivery Address</label>
+            <textarea id="profile-address" name="address" autocomplete="street-address" placeholder="House/unit, street, barangay, city, province" rows="3" required maxlength="240"></textarea>
+
+            <div class="profile-form-actions">
+              <p class="profile-message" id="profile-message" role="status" aria-live="polite"></p>
+              <button class="primary-button" type="submit">Save Changes</button>
+            </div>
+          </form>
+        </section>
+
+        <aside class="profile-card access-card" aria-labelledby="access-summary-title">
+          <div class="profile-card-heading">
+            <h2 id="access-summary-title">Access Summary</h2>
+            <p>Everything you need for your next craving.</p>
+          </div>
+          <div class="access-summary">
+            <p>With your Crave Spot account, you can:</p>
+            <ul>
+              <li>Explore meals, sides, and drinks on the menu.</li>
+              <li>Build and update your shopping cart.</li>
+              <li>Try the demo checkout to preview placing an order.</li>
+            </ul>
+            <small>Checkout is a prototype. No payment is collected.</small>
+          </div>
+        </aside>
+      </div>
+
+      <button class="profile-back-button" id="back-to-home" type="button">← Back to Crave Spot</button>
     </section>
   </main>
 

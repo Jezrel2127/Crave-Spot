@@ -149,6 +149,7 @@ const menuItems = [
 const CART_KEY = "craveSpotCart";
 const USERS_KEY = "craveSpotDemoUsers";
 const SESSION_KEY = "craveSpotDemoSession";
+const DELIVERY_KEY = "craveSpotDeliveryDetails";
 
 let activeType = "Food";
 let activeCategory = "All";
@@ -161,6 +162,27 @@ function readStorage(key, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function readDeliveryDetails() {
+  return readStorage(DELIVERY_KEY, { phone: "", address: "" });
+}
+
+function saveDeliveryDetails(details) {
+  localStorage.setItem(DELIVERY_KEY, JSON.stringify(details));
+}
+
+function renderCartDelivery() {
+  const session = readStorage(SESSION_KEY, null);
+  const details = readDeliveryDetails();
+  const recipient = document.getElementById("cart-delivery-recipient");
+  recipient.textContent = session?.email
+    ? (session.name || session.email)
+    : "Sign in to add delivery details.";
+  document.getElementById("cart-delivery-address").textContent = details.address || "No delivery address saved yet.";
+  document.getElementById("cart-delivery-phone").textContent = details.phone ? `☎ ${details.phone}` : "";
+  const editButton = document.getElementById("edit-delivery-details");
+  editButton.textContent = details.address && details.phone ? "Edit delivery details" : "Add delivery details";
 }
 
 let cart = readStorage(CART_KEY, []);
@@ -473,16 +495,12 @@ cartItemsElement.addEventListener("click", event => {
 
 // Open cart
 document.getElementById("open-cart").addEventListener("click", () => {
-  document.getElementById("cart-section").scrollIntoView({
-    behavior: "smooth"
-  });
+  navigateToPage("cart");
 });
 
 // Continue shopping
 document.getElementById("continue-shopping").addEventListener("click", () => {
-  document.getElementById("menu").scrollIntoView({
-    behavior: "smooth"
-  });
+  navigateToPage("menu");
 });
 
 document.getElementById("checkout-button").addEventListener("click", () => {
@@ -500,27 +518,85 @@ document.getElementById("checkout-button").addEventListener("click", () => {
     return;
   }
 
+  openCheckout();
+});
+
+function renderCheckoutOrder() {
+  const itemsHost = document.getElementById("checkout-order-items");
+  const details = cart.map(entry => {
+    const item = menuItems.find(product => product.id === Number(entry.id));
+    return item ? { ...item, quantity: Number(entry.quantity) } : null;
+  }).filter(Boolean);
+  itemsHost.replaceChildren();
+  details.forEach(item => {
+    const line = document.createElement("div");
+    line.className = "checkout-order-line";
+    const label = document.createElement("span");
+    label.textContent = `${item.name} × ${item.quantity}`;
+    const price = document.createElement("strong");
+    price.textContent = peso(item.price * item.quantity);
+    line.append(label, price);
+    itemsHost.append(line);
+  });
+  const total = details.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  document.getElementById("checkout-total").textContent = peso(total);
+  return total;
+}
+
+function openCheckout() {
+  const session = readStorage(SESSION_KEY, null);
+  if (!session?.email) {
+    cartMessage.textContent = "Please sign in before checking out.";
+    showAuth("login");
+    return;
+  }
+  const details = readDeliveryDetails();
+  document.getElementById("checkout-name").value = session.name || "";
+  document.getElementById("checkout-phone").value = details.phone || "";
+  document.getElementById("checkout-address").value = details.address || "";
+  document.getElementById("checkout-message").textContent = "";
+  renderCheckoutOrder();
+  navigateToPage("checkout");
+}
+
+document.getElementById("back-to-cart").addEventListener("click", () => navigateToPage("cart"));
+document.getElementById("edit-delivery-details").addEventListener("click", () => {
+  if (!readStorage(SESSION_KEY, null)?.email) {
+    showAuth("login");
+    return;
+  }
+  openCheckout();
+});
+
+document.getElementById("checkout-form").addEventListener("submit", event => {
+  event.preventDefault();
+  const message = document.getElementById("checkout-message");
+  const session = readStorage(SESSION_KEY, null);
+  if (!session?.email) {
+    message.textContent = "Please sign in again before placing your order.";
+    return;
+  }
+  if (!cart.length) {
+    message.textContent = "Your cart is empty.";
+    return;
+  }
+  const name = document.getElementById("checkout-name").value.trim();
+  const phone = document.getElementById("checkout-phone").value.trim();
+  const address = document.getElementById("checkout-address").value.trim();
+  if (!name || !phone || !address) {
+    message.textContent = "Please complete the delivery name, contact number, and address.";
+    return;
+  }
+  const orderTotal = renderCheckoutOrder();
   const orderNumber = "CS-" + Date.now().toString().slice(-6);
-
-  const orderTotal = cart.reduce((sum, entry) => {
-    const item = menuItems.find(
-      product => product.id === Number(entry.id)
-    );
-    return sum + (item ? item.price * entry.quantity : 0);
-  }, 0);
-
-  alert(
-    `Demo order placed successfully!\n\n` +
-    `Order number: ${orderNumber}\n` +
-    `Customer: ${session.name || session.email}\n` +
-    `Total: ${peso(orderTotal)}\n\n` +
-    `This is a prototype. No payment was collected.`
-  );
-
+  saveDeliveryDetails({ phone, address });
+  alert(`Demo order placed successfully!\n\nOrder number: ${orderNumber}\nCustomer: ${name}\nDeliver to: ${address}\nContact: ${phone}\nTotal: ${peso(orderTotal)}\n\nThis is a prototype. No payment was collected.`);
   cart = [];
   saveCart();
   renderCart();
+  renderCartDelivery();
   cartMessage.textContent = "Your demo order has been placed.";
+  navigateToPage("cart");
 });
 
 // Footer year
@@ -534,6 +610,7 @@ const authMessage = document.getElementById("auth-message");
 const loginForm = document.getElementById("login-form");
 const signupForm = document.getElementById("signup-form");
 const authActions = document.getElementById("auth-actions");
+const signinPage = document.getElementById("signin-page");
 
 function getUsers() {
   const users = readStorage(USERS_KEY, []);
@@ -563,6 +640,110 @@ function closeAuth() {
   authMessage.textContent = "";
 }
 
+function navigateToPage(page, updateHash = true) {
+  const profilePage = document.getElementById("profile-page");
+  signinPage.hidden = true;
+  document.querySelector(".site-header").hidden = false;
+  profilePage.hidden = true;
+  document.querySelectorAll("[data-view]").forEach(view => {
+    view.hidden = view.dataset.view !== page;
+  });
+  document.querySelector(".site-footer").hidden = false;
+  document.querySelectorAll(".main-nav [data-page]").forEach(link => {
+    const active = link.dataset.page === page;
+    link.classList.toggle("active", active);
+    if (active) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
+  if (updateHash) {
+    const hash = page === "cart" ? "cart" : page;
+    history.replaceState(null, "", `#${hash}`);
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+document.querySelectorAll(".main-nav [data-page]").forEach(link => {
+  link.addEventListener("click", event => {
+    event.preventDefault();
+    navigateToPage(link.dataset.page);
+  });
+});
+
+document.querySelectorAll("[data-go-page]").forEach(button => {
+  button.addEventListener("click", () => navigateToPage(button.dataset.goPage));
+});
+
+document.querySelectorAll('a[href="#menu"]').forEach(link => {
+  if (!link.closest(".main-nav")) {
+    link.addEventListener("click", event => {
+      event.preventDefault();
+      navigateToPage("menu");
+    });
+  }
+});
+
+window.addEventListener("hashchange", () => {
+  const requestedPage = window.location.hash.slice(1);
+  if (requestedPage === "signin") {
+    showSigninPage();
+    return;
+  }
+  if (requestedPage === "profile") {
+    showProfile();
+    return;
+  }
+  navigateToPage(["home", "menu", "about", "cart", "checkout"].includes(requestedPage) ? requestedPage : "home", false);
+});
+
+document.querySelectorAll("[data-toggle-password]").forEach(button => {
+  button.addEventListener("click", () => {
+    const input = document.getElementById(button.dataset.togglePassword);
+    const showPassword = input.type === "password";
+    input.type = showPassword ? "text" : "password";
+    button.setAttribute("aria-pressed", String(showPassword));
+    button.setAttribute("aria-label", showPassword ? "Hide password" : "Show password");
+    button.classList.toggle("is-visible", showPassword);
+  });
+});
+
+function showSigninPage() {
+  document.querySelector(".site-header").hidden = true;
+  document.querySelectorAll("[data-view]").forEach(view => { view.hidden = true; });
+  document.getElementById("profile-page").hidden = true;
+  document.querySelector(".site-footer").hidden = true;
+  signinPage.hidden = false;
+  document.getElementById("signin-email").value = "";
+  document.getElementById("signin-password").value = "";
+  document.getElementById("signin-message").textContent = "";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function showProfile() {
+  const session = readStorage(SESSION_KEY, null);
+  if (!session || !session.email) {
+    showAuth("login");
+    return;
+  }
+
+  document.getElementById("profile-name").value = session.name || "";
+  document.getElementById("profile-email").value = session.email;
+  const delivery = readDeliveryDetails();
+  document.getElementById("profile-phone").value = delivery.phone || "";
+  document.getElementById("profile-address").value = delivery.address || "";
+  document.getElementById("profile-message").textContent = "";
+  signinPage.hidden = true;
+  document.querySelector(".site-header").hidden = false;
+  document.querySelectorAll("[data-view]").forEach(view => { view.hidden = true; });
+  document.getElementById("profile-page").hidden = false;
+  document.querySelector(".site-footer").hidden = true;
+  history.replaceState(null, "", "#profile");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function showHome() {
+  navigateToPage("home");
+}
+
 // Demo password hashing only; not production authentication.
 async function hashPassword(password) {
   if (!window.crypto || !window.crypto.subtle) {
@@ -584,22 +765,96 @@ function renderAuthActions() {
   authActions.replaceChildren();
 
   if (session && session.email) {
-    const name = document.createElement("span");
-    name.className = "auth-user-name";
-    name.textContent = `Hi, ${session.name || session.email}`;
+    const account = document.createElement("div");
+    account.className = "account-menu";
+
+    const accountToggle = document.createElement("button");
+    accountToggle.type = "button";
+    accountToggle.className = "account-toggle";
+    accountToggle.setAttribute("aria-expanded", "false");
+    accountToggle.setAttribute("aria-haspopup", "true");
+
+    const initials = document.createElement("span");
+    initials.className = "account-avatar";
+    initials.setAttribute("aria-hidden", "true");
+    initials.textContent = (session.name || session.email)
+      .split(/\s+/)
+      .map(part => part[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+
+    const toggleCopy = document.createElement("span");
+    toggleCopy.className = "account-toggle-copy";
+    const toggleName = document.createElement("strong");
+    toggleName.textContent = session.name || session.email;
+    const toggleRole = document.createElement("small");
+    toggleRole.textContent = "Crave Spot Member";
+    toggleCopy.append(toggleName, toggleRole);
+
+    const chevron = document.createElement("span");
+    chevron.className = "account-chevron";
+    chevron.setAttribute("aria-hidden", "true");
+    chevron.textContent = "⌄";
+    accountToggle.append(initials, toggleCopy, chevron);
+
+    const dropdown = document.createElement("div");
+    dropdown.className = "account-dropdown";
+    dropdown.hidden = true;
+    dropdown.setAttribute("role", "menu");
+
+    const identity = document.createElement("div");
+    identity.className = "account-identity";
+    const identityName = document.createElement("strong");
+    identityName.textContent = session.name || session.email;
+    const identityEmail = document.createElement("span");
+    identityEmail.textContent = session.email;
+    identity.append(identityName, identityEmail);
+
+    const profileButton = document.createElement("button");
+    profileButton.type = "button";
+    profileButton.className = "account-menu-item";
+    profileButton.setAttribute("role", "menuitem");
+    profileButton.innerHTML = '<span aria-hidden="true">♙</span> Profile';
+    profileButton.addEventListener("click", () => {
+      dropdown.hidden = true;
+      accountToggle.setAttribute("aria-expanded", "false");
+      showProfile();
+    });
 
     const logoutButton = document.createElement("button");
     logoutButton.type = "button";
-    logoutButton.className = "login-button";
-    logoutButton.textContent = "Logout";
-
+    logoutButton.className = "account-menu-item account-signout";
+    logoutButton.setAttribute("role", "menuitem");
+    logoutButton.innerHTML = '<span aria-hidden="true">↪</span> Sign Out';
     logoutButton.addEventListener("click", () => {
       localStorage.removeItem(SESSION_KEY);
       renderAuthActions();
-      cartMessage.textContent = "You have logged out.";
+      history.replaceState(null, "", "#signin");
+      showSigninPage();
     });
 
-    authActions.append(name, logoutButton);
+    dropdown.append(identity, profileButton, logoutButton);
+    accountToggle.addEventListener("click", () => {
+      const isExpanded = accountToggle.getAttribute("aria-expanded") === "true";
+      accountToggle.setAttribute("aria-expanded", String(!isExpanded));
+      dropdown.hidden = isExpanded;
+    });
+    document.addEventListener("click", event => {
+      if (!account.contains(event.target)) {
+        dropdown.hidden = true;
+        accountToggle.setAttribute("aria-expanded", "false");
+      }
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        dropdown.hidden = true;
+        accountToggle.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    account.append(accountToggle, dropdown);
+    authActions.append(account);
     return;
   }
 
@@ -636,6 +891,73 @@ document.getElementById("switch-to-signup").addEventListener("click", () => {
 
 document.getElementById("switch-to-login").addEventListener("click", () => {
   showAuth("login");
+});
+
+document.getElementById("back-to-home").addEventListener("click", showHome);
+document.getElementById("signin-create-account").addEventListener("click", () => showAuth("signup"));
+
+document.getElementById("signin-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const message = document.getElementById("signin-message");
+  message.textContent = "";
+  const email = document.getElementById("signin-email").value.trim().toLowerCase();
+  const password = document.getElementById("signin-password").value;
+
+  try {
+    const passwordHash = await hashPassword(password);
+    const user = getUsers().find(account => account.email === email && account.passwordHash === passwordHash);
+    if (!user) {
+      message.textContent = "We couldn’t sign you in with those details. Check your email and password and try again.";
+      return;
+    }
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ name: user.name, email: user.email }));
+    renderAuthActions();
+    document.getElementById("signin-form").reset();
+    navigateToPage("home");
+  } catch (error) {
+    message.textContent = error.message || "Unable to sign in. Please try again.";
+  }
+});
+
+document.getElementById("profile-form").addEventListener("submit", event => {
+  event.preventDefault();
+  const message = document.getElementById("profile-message");
+  const session = readStorage(SESSION_KEY, null);
+  if (!session || !session.email) {
+    message.textContent = "Please log in again to update your profile.";
+    return;
+  }
+
+  const name = document.getElementById("profile-name").value.trim();
+  const email = document.getElementById("profile-email").value.trim().toLowerCase();
+  const phone = document.getElementById("profile-phone").value.trim();
+  const address = document.getElementById("profile-address").value.trim();
+  if (!name || !email || !phone || !address) {
+    message.textContent = "Complete your name, email, contact number, and delivery address.";
+    return;
+  }
+
+  const users = getUsers();
+  const currentUser = users.find(user => user.email === session.email);
+  if (!currentUser) {
+    message.textContent = "We couldn’t find your account. Please log in again.";
+    return;
+  }
+
+  const emailInUse = users.some(user => user.email === email && user.email !== session.email);
+  if (emailInUse) {
+    message.textContent = "That email address is already used by another account.";
+    return;
+  }
+
+  currentUser.name = name;
+  currentUser.email = email;
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ name, email }));
+  saveDeliveryDetails({ phone, address });
+  message.textContent = "Your profile has been updated.";
+  renderAuthActions();
+  renderCartDelivery();
 });
 
 // Sign up
@@ -716,3 +1038,12 @@ renderCategories();
 renderMenu();
 renderCart();
 renderAuthActions();
+renderCartDelivery();
+
+const initialPage = window.location.hash.slice(1);
+document.getElementById("signin-year").textContent = new Date().getFullYear();
+if (initialPage === "profile" && readStorage(SESSION_KEY, null)?.email) {
+  showProfile();
+} else {
+  showSigninPage();
+}
